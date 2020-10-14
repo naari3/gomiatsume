@@ -6,7 +6,8 @@ extern crate dotenv_codegen;
 
 use futures::TryStreamExt;
 
-use egg_mode::entities::MediaType::Photo;
+use egg_mode::entities::MediaType::{Gif, Photo, Video};
+use egg_mode::entities::VideoVariant;
 use egg_mode::stream::StreamMessage;
 
 use url::Url;
@@ -39,9 +40,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let StreamMessage::Tweet(tweet) = m {
                 if let Some(media) = tweet.extended_entities {
                     for info in media.media {
-                        if let Photo = info.media_type {
-                            if let Err(e) = download_from_url(info.media_url_https).await {
-                                println!("Failed download: {}", e)
+                        match info.media_type {
+                            Photo => {
+                                if let Err(e) = download_from_url(&info.media_url_https).await {
+                                    println!("Failed download: {}", e)
+                                }
+                            }
+                            Video => {
+                                if let Some(video_info) = info.video_info {
+                                    let variant = biggest_variable(&video_info.variants);
+                                    if let Some(variant) = variant {
+                                        if let Err(e) = download_from_url(&variant.url).await {
+                                            println!("Failed download: {}", e)
+                                        }
+                                    }
+                                }
+                            }
+                            Gif => {
+                                if let Some(video_info) = info.video_info {
+                                    let variant = biggest_variable(&video_info.variants);
+                                    if let Some(variant) = variant {
+                                        if let Err(e) = download_from_url(&variant.url).await {
+                                            println!("Failed download: {}", e)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -68,9 +91,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn download_from_url(image_url: String) -> Result<(), Box<dyn std::error::Error>> {
-    let res = reqwest::get(&image_url).await?;
-    let url = Url::parse(&image_url)?;
+fn biggest_variable(variables: &Vec<VideoVariant>) -> Option<&VideoVariant> {
+    variables
+        .iter()
+        .max_by(|a, b| a.bitrate.unwrap_or(0).cmp(&b.bitrate.unwrap_or(0)))
+}
+
+async fn download_from_url(image_url: &String) -> Result<(), Box<dyn std::error::Error>> {
+    let res = reqwest::get(image_url).await?;
+    let url = Url::parse(image_url)?;
 
     if let Some(segments) = url.path_segments().map(|c| c.collect::<Vec<_>>()) {
         let filename = segments[segments.len() - 1];
