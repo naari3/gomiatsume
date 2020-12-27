@@ -354,6 +354,7 @@ dependencies = [
 name = "gomiatsume"
 version = "0.1.0"
 dependencies = [
+ "dotenv",
  "dotenv_codegen",
  "egg-mode",
  "futures",

@@ -25,7 +25,9 @@ use std::io::Write;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = Config::load().await;
+    let consumer_key = dotenv!("TWITTER_CONSUMER_KEY").trim();
+    let consumer_secret = dotenv!("TWITTER_CONSUMER_SECRET").trim();
+    let config = Config::load(consumer_key, consumer_secret).await;
     let token = config.token;
     let username = config.screen_name;
 

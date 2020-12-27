@@ -3,31 +3,34 @@ extern crate webbrowser;
 use std::io::{Read, Write};
 
 pub struct Config {
+    pub consumer_key: String,
+    pub consumer_secret: String,
     pub token: egg_mode::Token,
     pub user_id: u64,
     pub screen_name: String,
 }
 
 impl Config {
-    pub async fn load() -> Self {
-        let a1 = Config::load_inner().await;
+    pub async fn load(consumer_key: &str, consumer_secret: &str) -> Self {
+        let a1 = Config::load_inner(consumer_key, consumer_secret).await;
         if let Some(conf) = a1 {
             return conf;
         }
 
-        Config::load_inner().await.unwrap()
+        Config::load_inner(consumer_key, consumer_secret)
+            .await
+            .unwrap()
     }
 
     /// This needs to be a separate function so we can retry after creating the
     /// twitter_settings file. Idealy we would recurse, but that requires boxing
     /// the output which doesn't seem worthwhile
-    async fn load_inner() -> Option<Self> {
+    async fn load_inner(consumer_key: &str, consumer_secret: &str) -> Option<Self> {
         //IMPORTANT: make an app for yourself at apps.twitter.com and get your
         //key/secret into these files; these examples won't work without them
-        let consumer_key = dotenv!("TWITTER_CONSUMER_KEY").trim();
-        let consumer_secret = dotenv!("TWITTER_CONSUMER_SECRET").trim();
 
-        let con_token = egg_mode::KeyPair::new(consumer_key, consumer_secret);
+        let con_token =
+            egg_mode::KeyPair::new(consumer_key.to_string(), consumer_secret.to_string());
 
         let mut config = String::new();
         let user_id: u64;
@@ -111,6 +114,8 @@ impl Config {
         //TODO: Is there a better way to query whether a file exists?
         if std::fs::metadata("twitter_settings").is_ok() {
             Some(Config {
+                consumer_key: consumer_key.to_string(),
+                consumer_secret: consumer_secret.to_string(),
                 token: token,
                 user_id: user_id,
                 screen_name: username,
