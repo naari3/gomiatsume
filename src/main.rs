@@ -36,7 +36,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         let stream = egg_mode::stream::sample(&token).try_for_each_concurrent(10, async move |m| {
-            try_count = 0;
             if let StreamMessage::Tweet(tweet) = m {
                 if let Some(media) = tweet.extended_entities {
                     for info in media.media {
